@@ -1,0 +1,51 @@
+# Standalone production-style stack (no bind mounts, no --reload).
+# Usage:
+#   docker compose -f docker-compose.prod.yml up --build -d
+#
+# Provide secrets via a root .env file (see .env.example).
+
+services:
+  db:
+    image: postgres:16-alpine
+    container_name: kyu_mental_health_db
+    restart: always
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-postgres}
+      POSTGRES_DB: mental_health_db
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d mental_health_db"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: kyu_mental_health_api
+    restart: always
+    ports:
+      - "8000:8000"
+    environment:
+      DATABASE_URL: postgresql://postgres:${POSTGRES_PASSWORD:-postgres}@db:5432/mental_health_db
+      DEBUG: "false"
+      JWT_SECRET_KEY: ${JWT_SECRET_KEY:-change-me-in-production-use-a-long-random-string}
+      FRONTEND_URL: ${FRONTEND_URL:-http://localhost:5173}
+      CORS_ORIGINS: ${CORS_ORIGINS:-["http://localhost:5173"]}
+      OPENAI_API_KEY: ${OPENAI_API_KEY:-}
+      OPENAI_MODEL: ${OPENAI_MODEL:-gpt-4o-mini}
+      SMTP_HOST: ${SMTP_HOST:-}
+      SMTP_PORT: ${SMTP_PORT:-587}
+      SMTP_USER: ${SMTP_USER:-}
+      SMTP_PASSWORD: ${SMTP_PASSWORD:-}
+      SMTP_FROM_EMAIL: ${SMTP_FROM_EMAIL:-noreply@kyu-mentalhealth.local}
+      COUNSELOR_ALERT_EMAILS: ${COUNSELOR_ALERT_EMAILS:-counselor@kyu.ac.ug}
+    depends_on:
+      db:
+        condition: service_healthy
+
+volumes:
+  postgres_data:

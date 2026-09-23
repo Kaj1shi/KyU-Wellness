@@ -1,0 +1,42 @@
+@import "tailwindcss";
+
+@theme {
+  --color-calm-50:  #edf4ff;
+  --color-calm-100: #dbeafe;
+  --color-calm-200: #93c5fd;
+  --color-calm-300: #3b82f6;
+  --color-calm-400: #1d4ed8;
+  --color-calm-500: #1e3a8a;
+  --color-green-50:  #e1fdbb;
+  --color-green-100: #5dda4d;
+  --color-green-200: #37c126;
+  --color-green-300: #299f1a;
+  --color-green-400: #227d18;
+  --color-green-500: #206318;
+  --color-green-600: #1b5116;
+  --font-sans: "Inter", system-ui, -apple-system, sans-serif;
+}
+
+@layer base {
+  html {
+    @apply scroll-smooth;
+  }
+
+  body {
+    @apply min-h-dvh overflow-x-hidden bg-green-50 font-sans text-slate-800 antialiased;
+  }
+
+  *:focus-visible {
+    @apply outline-2 outline-offset-2 outline-calm-500;
+  }
+}
+
+@layer utilities {
+  .card {
+    @apply rounded-2xl bg-white/80 shadow-lg shadow-calm-200/40 backdrop-blur-sm;
+  }
+
+  .safe-top {
+    padding-top: max(0.25rem, env(safe-area-inset-top));
+  }
+}

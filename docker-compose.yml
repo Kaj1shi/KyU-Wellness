@@ -1,0 +1,66 @@
+services:
+  db:
+    image: postgres:16-alpine
+    container_name: kyu_mental_health_db
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: mental_health_db
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d mental_health_db"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  mailhog:
+    image: mailhog/mailhog:latest
+    container_name: kyu_mental_health_mailhog
+    restart: unless-stopped
+    ports:
+      - "1025:1025"
+      - "8025:8025"
+
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: kyu_mental_health_api
+    restart: unless-stopped
+    ports:
+      - "8000:8000"
+    extra_hosts:
+      # Compose bridge gateway on Linux (not docker0). Needed to reach host Ollama/proxy.
+      - "host.docker.internal:172.18.0.1"
+    environment:
+      DATABASE_URL: postgresql://postgres:postgres@db:5432/mental_health_db
+      JWT_SECRET_KEY: dev-secret-change-in-production
+      FRONTEND_URL: http://localhost:5173
+      CORS_ORIGINS: '["http://localhost:5173","http://127.0.0.1:5173"]'
+      SMTP_HOST: mailhog
+      SMTP_PORT: 1025
+      DEBUG: "true"
+      LLM_PROVIDER: ${LLM_PROVIDER:-ollama}
+      # Port 11435 = scripts/ollama-docker-proxy.sh (Ollama usually binds 127.0.0.1 only).
+      # After exposing Ollama with OLLAMA_HOST=0.0.0.0:11434 you can use :11434 instead.
+      OLLAMA_BASE_URL: ${OLLAMA_BASE_URL:-http://host.docker.internal:11435/v1}
+      OLLAMA_MODEL: ${OLLAMA_MODEL:-hf.co/empero-ai/Qwythos-9B-Claude-Mythos-5-1M-GGUF:Q4_K_M}
+      OPENAI_API_KEY: ${OPENAI_API_KEY:-}
+      OPENAI_MODEL: ${OPENAI_MODEL:-gpt-4o-mini}
+    volumes:
+      - ./backend:/app
+    command: >
+      sh -c "alembic upgrade head &&
+             uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload"
+    depends_on:
+      db:
+        condition: service_healthy
+      mailhog:
+        condition: service_started
+
+volumes:
+  postgres_data:

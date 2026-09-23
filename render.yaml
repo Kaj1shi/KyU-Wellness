@@ -1,0 +1,42 @@
+services:
+  - type: web
+    name: kyu-wellness-api
+    runtime: docker
+    plan: free
+    dockerfilePath: ./backend/Dockerfile
+    dockerContext: ./backend
+    healthCheckPath: /api/health
+    envVars:
+      - key: DEBUG
+        value: "false"
+      - key: JWT_SECRET_KEY
+        generateValue: true
+      - key: FRONTEND_URL
+        sync: false
+      - key: CORS_ORIGINS
+        sync: false
+      - key: OPENAI_API_KEY
+        sync: false
+      - key: OPENAI_MODEL
+        value: gpt-4o-mini
+      - key: SMTP_HOST
+        sync: false
+      - key: SMTP_PORT
+        value: "587"
+      - key: SMTP_USER
+        sync: false
+      - key: SMTP_PASSWORD
+        sync: false
+      - key: SMTP_FROM_EMAIL
+        sync: false
+      - key: COUNSELOR_ALERT_EMAILS
+        sync: false
+      - key: DATABASE_URL
+        fromDatabase:
+          name: kyu-wellness-db
+          property: connectionString
+
+databases:
+  - name: kyu-wellness-db
+    plan: free
+    postgresMajorVersion: "16"
